@@ -1,0 +1,23 @@
+[package]
+name = "wallet-ffi"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+name = "web3rust"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wallet-ipc = { path = "../wallet-ipc" }
+wallet-core = { path = "../wallet-core" }
+chain-evm = { path = "../chain-evm" }
+chain-tron = { path = "../chain-tron" }
+chain-solana = { path = "../chain-solana" }
+wallet-sandbox = { path = "../wallet-sandbox" }
+zeroize = { version = "=1.9.1", features = ["alloc"] }
+hex.workspace = true
+windows-sys = { version = "=0.61.2", features = ["Win32_System_Pipes", "Win32_System_Console", "Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+bs58.workspace = true

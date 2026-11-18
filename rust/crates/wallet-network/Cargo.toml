@@ -1,0 +1,11 @@
+[package]
+name = "wallet-network"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+wallet-ipc = { path = "../wallet-ipc" }
+wallet-services = { path = "../wallet-services" }
+wallet-sandbox = { path = "../wallet-sandbox" }
+serde_json = "=1.0.151"

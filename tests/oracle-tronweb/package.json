@@ -1,0 +1,7 @@
+{
+  "name": "web3rust-public-vector-oracle",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Offline public test vectors only; never a product dependency",
+  "dependencies": { "tronweb": "6.5.1" }
+}

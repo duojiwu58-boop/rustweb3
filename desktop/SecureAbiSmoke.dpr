@@ -1,0 +1,146 @@
+﻿program SecureAbiSmoke;
+{$APPTYPE CONSOLE}
+uses Winapi.Windows, System.SysUtils, System.DateUtils, SecureWalletApi in 'units\SecureWalletApi.pas';
+const Words: UTF8String = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art';
+      Password: UTF8String = 'PUBLIC TEST PASSWORD ONLY';
+var Api: TSecureWalletApi; Name, Value, First, Sender, Id, Hash, Nonce: UTF8String;
+    OldEpoch: UInt64; Rejected: Boolean; Lines: TArray<string>; GeneratedWords, GeneratedAddress: UTF8String;
+    SolAddress, SolSummary, SolId, SolSignature, SolRaw: UTF8String;
+    TronAddress, TronSummary, TronId, TronHash, TronRaw: UTF8String; TronTime: Int64;
+begin
+  SetTextCodePage(Output,65001);
+  try
+    Api := TSecureWalletApi.Create;
+    try
+      // Disposable random test wallet; words remain entirely inside this contained process.
+      Name := UTF8String('abi-random-' + IntToStr(GetTickCount64));
+      Value := Api.Request(1, [Name, Password]); Wipe(Value);
+      GeneratedWords := Api.Request(3, []);
+      Rejected := False;
+      try Value := Api.Request(2,[Name,'']);
+      except on E: EWalletRequest do Rejected := E.Code=-31; end;
+      if not Rejected then raise Exception.Create('Empty password reopened backup');
+      Rejected := False;
+      try Value := Api.Request(6,[Name,Password]);
+      except on E: EWalletRequest do Rejected := E.Code=-37; end;
+      if not Rejected then raise Exception.Create('Premature address request accepted');
+      Value := Api.Request(3,[]);
+      if Value<>GeneratedWords then raise Exception.Create('Premature address request destroyed backup'); Wipe(Value);
+      GeneratedAddress := Api.Request(4, [GeneratedWords]);
+      Value := Api.Request(6, [Name, Password]);
+      if Value <> GeneratedAddress then raise Exception.Create('Activation receive address mismatch'); Wipe(Value);
+      Name := Name + '-restored';
+      Value := Api.Request(7, [Name, Password, GeneratedWords]); Wipe(Value);
+      Value := Api.Request(4, [GeneratedWords]); Wipe(Value); Wipe(GeneratedWords);
+      Value := Api.Request(6, [Name, Password]);
+      if Value <> GeneratedAddress then raise Exception.Create('Random create/restore address mismatch');
+      Wipe(Value); Wipe(GeneratedAddress);
+      Name := UTF8String('abi-public-' + IntToStr(GetTickCount64));
+      Value := Api.Request(7, [Name, Password, Words]); Wipe(Value);
+      Value := Api.Request(3, []);
+      if Value <> Words then raise Exception.Create('Backup mismatch'); Wipe(Value);
+      Value := Api.Request(4, [Words]); Wipe(Value);
+      First := Api.Request(6, [Name, Password]);
+      Value := Api.Request(30,[]); Wipe(Value);
+      OldEpoch := Api.Epoch;
+      Api.Lock;
+      Rejected := False;
+      try Value := Api.RequestAt(OldEpoch,6,[Name,Password]);
+      except on E: Exception do Rejected := Pos('(-4)',E.Message)>0; end;
+      if not Rejected then raise Exception.Create('Stale sensitive session accepted');
+      Value := Api.Request(6, [Name, Password]);
+      if Value <> First then raise Exception.Create('Restart address mismatch');
+      TronAddress := Api.Request(31,[Name]);
+      TronTime := DateTimeToUnix(TTimeZone.Local.ToUniversalTime(Now),True)*1000;
+      TronSummary := 'USDT'+#10+'tron-mainnet'+#10+TronAddress+#10+
+        'TW1dU4L3eNm7Lw8WvieLKEHpXWAussRG9Z'+#10+'1.000001'+#10+'7b3b'+#10+'b21ace8d6ac20e7e'+#10+
+        UTF8String(IntToStr(TronTime))+#10+UTF8String(IntToStr(TronTime+60000))+#10+'30000000'+#10+'400000';
+      Value := Api.Request(32,[Name,TronSummary]); Lines := string(Value).Split([#10]);
+      if Length(Lines)<>13 then raise Exception.Create('Tron typed summary invalid');
+      TronId := UTF8String(Lines[0]); TronHash := UTF8String(Lines[1]);
+      TronRaw := Api.Request(33,[Name,TronId]);
+      if (Length(TronRaw)<250) or (Length(TronRaw)>512) then raise Exception.Create('Tron payload bounds');
+      Api.Lock; Rejected := False;
+      try Value := Api.Request(33,[Name,TronId]); except on E: EWalletRequest do Rejected := E.Code=-33; end;
+      if not Rejected then raise Exception.Create('Locked Tron payload released');
+      Value := Api.Request(6,[Name,Password]); Wipe(Value);
+      Value := Api.Request(33,[Name,TronId]);
+      if Value<>TronRaw then raise Exception.Create('Tron restart changed signed bytes'); Wipe(Value); Wipe(TronRaw);
+      Value := Api.Request(34,[Name]);
+      if Pos(string(TronHash),string(Value))=0 then raise Exception.Create('Tron persistent history missing');
+      // Synthetic evidence for disposable test wallet only; no broadcast.
+      Value := Api.Request(35,[Name,TronId,TronHash,'finalized']); Wipe(Value);
+      WriteLn('PASS: contained Tron USDT signing, encrypted replay, history and locked-session rejection; NO broadcast');
+      SolAddress := Api.Request(25,[Name]);
+      SolSummary := 'USDT'+#10+'solana-mainnet'+#10+SolAddress+#10+
+        'J2xccRtuG43drESLYznHhLhQkLTdfepcKYbiQ9BsJVaf'+#10+'1.000001'+#10+
+        'US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx'+#10+'1000'+#10+'5000'+#10+'2039280'+#10+'1';
+      Value := Api.Request(26,[Name,SolSummary]); Lines := string(Value).Split([#10]);
+      if Length(Lines)<>12 then raise Exception.Create('Solana typed summary invalid');
+      SolId := UTF8String(Lines[0]); SolSignature := UTF8String(Lines[1]);
+      SolRaw := Api.Request(27,[Name,SolId]);
+      if (Length(SolRaw)<300) or (Length(SolRaw)>512) then raise Exception.Create('Solana payload bounds');
+      Api.Lock;
+      Rejected := False;
+      try Value := Api.Request(27,[Name,SolId]); except on E: EWalletRequest do Rejected := E.Code=-33; end;
+      if not Rejected then raise Exception.Create('Locked Solana payload released');
+      Value := Api.Request(6,[Name,Password]); Wipe(Value);
+      Value := Api.Request(27,[Name,SolId]);
+      if Value<>SolRaw then raise Exception.Create('Solana restart changed signed bytes'); Wipe(Value); Wipe(SolRaw);
+      Value := Api.Request(28,[Name]);
+      if Pos(string(SolSignature),string(Value))=0 then raise Exception.Create('Solana persistent history missing');
+      // Synthetic local evidence for the public fixture only; never broadcast.
+      Value := Api.Request(29,[Name,SolId,SolSignature,'finalized']); Wipe(Value);
+      WriteLn('PASS: contained Solana USDT signing, encrypted replay, history and locked-session rejection; NO broadcast');
+      Sender := Copy(First,1,Pos(#10,string(First))-1); Nonce := UTF8String(UIntToStr(GetTickCount64));
+      Value := Api.Request(15,[Name,Sender,Sender,'0.000000000000000001',Nonce,'1000000000']);
+      Lines := string(Value).Split([#10]);
+      if Length(Lines)<>10 then raise Exception.Create('Typed signing summary invalid');
+      Id := UTF8String(Lines[0]); Hash := UTF8String(Lines[1]);
+      Value := Api.Request(17,[Name,Id]);
+      if Length(Value)<90 then raise Exception.Create('Signed payload missing'); Wipe(Value);
+      // Synthetic receipt is ONLY for this public local test; no broadcast API is called.
+      Value := Api.Request(11,[Id,Hash,'finalized','1',UTF8String('0x'+StringOfChar('1',64)),'1']);
+      Wipe(Value); Wipe(First);
+      Nonce := UTF8String(UIntToStr(StrToUInt64(string(Nonce))+1));
+      Value := Api.Request(16,[Name,Sender,Sender,'1.234567890123456789',Nonce,'1000000000','60000']);
+      Lines := string(Value).Split([#10]);
+      if (Length(Lines)<>11) or (Lines[2]<>'USDT') or (Lines[10]<>'0x55d398326f99059fF775485246999027B3197955') then raise Exception.Create('USDT signing summary invalid');
+      Id := UTF8String(Lines[0]); Hash := UTF8String(Lines[1]);
+      First := Api.Request(17,[Name,Id]);
+      Api.Lock;
+      Rejected := False;
+      try Value := Api.Request(17,[Name,Id]);
+      except on E: EWalletRequest do Rejected := E.Code=-33; end;
+      if not Rejected then raise Exception.Create('Locked session released signed payload');
+      Rejected := False;
+      try Value := Api.Request(16,[Name,Sender,Sender,'1',Nonce,'1000000000','60000']);
+      except on E: EWalletRequest do Rejected := E.Code=-33; end;
+      if not Rejected then raise Exception.Create('Locked session signed transaction');
+      Value := Api.Request(6,[Name,Password]); Wipe(Value);
+      Value := Api.Request(17,[Name,Id]);
+      if (Value<>First) or (Length(Value)<150) then raise Exception.Create('USDT restart replay mismatch');
+      Wipe(Value); Wipe(First);
+      Rejected := False;
+      try Value := Api.Request(15,[Name,Sender,Sender,'1',Nonce,'1000000000']);
+      except on E: EWalletRequest do Rejected := E.Code=-38; end;
+      if not Rejected then raise Exception.Create('Unresolved USDT allowed another BNB payment');
+      Value := Api.Request(11,[Id,Hash,'finalized','1',UTF8String('0x'+StringOfChar('1',64)),'1']); Wipe(Value);
+      Rejected := False;
+      try Value := Api.Request(20,[Name,'WRONG TEST PASSWORD']);
+      except on E: EWalletRequest do Rejected := E.Code=-32; end;
+      if not Rejected then raise Exception.Create('Delete accepted wrong password');
+      Value := Api.Request(6,[Name,Password]); Wipe(Value);
+      Value := Api.Request(20,[Name,Password]); Wipe(Value);
+      Value := Api.Request(13,[]);
+      if Pos(string(Name),string(Value))>0 then raise Exception.Create('Deleted wallet still listed');
+      Wipe(Value);
+      Value := Api.Request(10,[Sender]);
+      if Pos(string(Hash),string(Value))>0 then raise Exception.Create('Delete retained account transaction journal');
+      Wipe(Value);
+      WriteLn('PASS: authenticated wallet deletion, list refresh, account transaction journal erased');
+      WriteLn('PASS: USDT typed signing, same-byte replay after restart, cross-asset payment lock; NO broadcast');
+      WriteLn('PASS: Delphi -> contained vault/signing/journal; stale session rejected; disposable test wallets only, NO broadcast');
+    finally Api.Free; end;
+  except on E: Exception do begin WriteLn(E.Message); ExitCode := 1; end; end;
+end.

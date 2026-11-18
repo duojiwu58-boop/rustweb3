@@ -1,0 +1,16 @@
+[package]
+name = "wallet-services"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Networking_WinHttp", "Win32_Storage_FileSystem"] }
+serde_json = "=1.0.151"
+wallet-core = { path = "../wallet-core" }
+chain-evm = { path = "../chain-evm" }
+chain-solana = { path = "../chain-solana" }
+chain-tron = { path = "../chain-tron" }
+base64 = "=0.22.1"
+bs58.workspace = true
+hex.workspace = true

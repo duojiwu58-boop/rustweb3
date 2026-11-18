@@ -1,0 +1,16 @@
+[package]
+name = "chain-tron"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+wallet-core = { path = "../wallet-core" }
+chain-evm = { path = "../chain-evm" }
+sha2.workspace = true
+bs58.workspace = true
+prost.workspace = true
+hex.workspace = true
+
+[dev-dependencies]
+k256.workspace = true

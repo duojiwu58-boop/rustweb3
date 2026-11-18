@@ -1,0 +1,44 @@
+{
+  "repositories": [
+    {
+      "name": "gem-wallet",
+      "depth": 1,
+      "remote": "https://github.com/gemwalletcom/wallet.git",
+      "path": "references/gem-wallet",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "230184F60BAE2FEAF244F10A8BAC053C8FF33A183BCC365B4D8B876D2B7F4809"
+        },
+        {
+          "path": "core/LICENSE",
+          "sha256": "3CCDFA54AB609182AB227F54497A874BCF48A6A1563EBA25E8B551741FCB422F"
+        }
+      ],
+      "working_tree_clean": true,
+      "commit": "9026429adaea5f02590073f0f157193674aa5288",
+      "submodules_initialized": false
+    },
+    {
+      "name": "trust-wallet-core",
+      "depth": 1,
+      "remote": "https://github.com/trustwallet/wallet-core.git",
+      "path": "references/trust-wallet-core",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "219034F3E91B89F9E889BF0EDA9D45AA2D8D98EB55DAE886551C73BE38635915"
+        },
+        {
+          "path": "LICENSE-3RD-PARTY.txt",
+          "sha256": "E5C0FF9B3073943D4F3E4644473FBE86AF75CA0C6C099F5741CF9D8815B74D97"
+        }
+      ],
+      "working_tree_clean": true,
+      "commit": "2a8aa02011ec42b43689667682fa99ae905418d5",
+      "submodules_initialized": false
+    }
+  ],
+  "recorded_utc": "2026-11-04T03:22:08.8676071Z",
+  "purpose": "Read-only source references; not built or audited"
+}

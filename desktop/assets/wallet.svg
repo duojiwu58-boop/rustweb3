@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>Web3Rust Wallet — Connected W</title>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="#17191B"/>
+  <rect x="16" y="16" width="224" height="224" rx="49" fill="none" stroke="#343B2D" stroke-width="2"/>
+  <path d="M56 82 L88 174 L128 122 L168 174 L200 82" fill="none" stroke="#CAEF45" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
